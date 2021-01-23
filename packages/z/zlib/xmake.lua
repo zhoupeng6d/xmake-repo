@@ -33,7 +33,7 @@ package("zlib")
         os.vrun("make install -j4")
     end)
 
-    on_install("iphoneos", "android@linux,macosx", "mingw@linux,macosx", "cross", function (package)
+    on_install("iphoneos", "android@linux,macosx", "mingw@linux,macosx", "cross", "s32g", function (package)
         import("package.tools.autoconf").configure(package, {host = "", "--static"})
         io.gsub("Makefile", "\nAR=.-\n",      "\nAR=" .. (package:build_getenv("ar") or "") .. "\n")
         io.gsub("Makefile", "\nARFLAGS=.-\n", "\nARFLAGS=cr\n")
@@ -42,5 +42,7 @@ package("zlib")
     end)
 
     on_test(function (package)
-        assert(package:has_cfuncs("inflate", {includes = "zlib.h"}))
+        if not is_plat("s32g") then
+            assert(package:has_cfuncs("inflate", {includes = "zlib.h"}))
+        end
     end)

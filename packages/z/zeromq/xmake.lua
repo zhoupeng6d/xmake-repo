@@ -12,6 +12,15 @@ package("zeromq")
         add_deps("cmake")
     end
 
+    if is_plat("linux") then
+        add_syslinks("pthread")
+    end
+
+    if is_plat("s32g") then
+        add_syslinks("pthread")
+        set_arch("arm64")
+    end
+
     on_install("windows", function (package)
         local configs = {}
         table.insert(configs, "-DBUILD_SHARED_LIBS=" .. (package:config("shared") and "ON" or "OFF"))
@@ -28,6 +37,32 @@ package("zeromq")
         import("package.tools.autoconf").install(package, configs)
     end)
 
-    on_test(function (package)
-        assert(package:has_cfuncs("zmq_msg_init_size", {includes = "zmq.h"}))
+    on_install("s32g", function (package)
+        local configs = {}
+        print("on install plat s32g")
+
+        table.insert(configs, "--enable-shared=yes")
+        table.insert(configs, "--build=x86_64-linux")
+        table.insert(configs, "--host=aarch64-fsl-linux")
+        table.insert(configs, "--target=aarch64-fsl-linux")
+        table.insert(configs, "--prefix=" .. package:installdir())
+        -- import("package.tools.autoconf").install(package, configs)
+        local buildenvs = import("package.tools.autoconf").buildenvs(package)
+    
+        -- If LD is not reset, the shared-library cannot be compiled
+        buildenvs.LD = "aarch64-fsl-linux-ld"
+
+        print("configs:")
+        print(configs)
+
+        print("buildenvs:")
+        print(buildenvs)
+
+        os.vrunv("./configure", configs, {envs = buildenvs})
+
+        import("package.tools.make").install(package)
     end)
+
+    -- on_test(function (package)
+       -- assert(package:has_cfuncs("zmq_msg_init_size", {includes = "zmq.h"}))
+    -- end)

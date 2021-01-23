@@ -32,18 +32,30 @@ package("protobuf-cpp")
     on_install("linux", "macosx", function (package)
         import("package.tools.autoconf").install(package, {"--enable-shared=no"})
     end)
+    
+    on_install("s32g", function (package)
+        local configs = {}
+        print("plat s32g")
+        table.insert(configs, "--enable-shared=yes")
+        table.insert(configs, "--build=x86_64-linux")
+        table.insert(configs, "--host=aarch64-fsl-linux")
+        table.insert(configs, "--target=aarch64-fsl-linux")
+        import("package.tools.autoconf").install(package, configs)
+    end)
 
     on_test(function (package)
-        io.writefile("test.proto", [[
-            syntax = "proto3";
-            package test;
-            message TestCase {
-                string name = 4;
-            }
-            message Test {
-                repeated TestCase case = 1;
-            }
-        ]])
-        os.vrun("protoc test.proto --cpp_out=.")
-        assert(package:check_cxxsnippets({test = io.readfile("test.pb.cc")}, {configs = {includedirs = {".", package:installdir("include")}, languages = "c++11"}}))
+        if not is_plat("s32g") then
+            io.writefile("test.proto", [[
+                syntax = "proto3";
+                package test;
+                message TestCase {
+                    string name = 4;
+                }
+                message Test {
+                    repeated TestCase case = 1;
+                }
+            ]])
+            os.vrun("protoc test.proto --cpp_out=.")
+            assert(package:check_cxxsnippets({test = io.readfile("test.pb.cc")}, {configs = {includedirs = {".", package:installdir("include")}, languages = "c++11"}}))
+        end
     end)
